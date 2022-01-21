@@ -56,3 +56,30 @@ Fraud_Data$Foreign <- ifelse(Fraud_Data$STATE_PRVNC_TXT %in% c("alabama","alaska
                                                                "south carolina", "south dakota", "tennessee", "texas",
                                                                "utah", "vermont", "virginia", "washington", "west virginia",
                                                                "wisconsin", "wyoming"),0,1)
+#Dummy Variables
+
+
+#Convert FRAUD_NOFRAUD to a factor
+
+
+#set.seed()
+#Split data for partitioning and indexing 
+
+
+
+#set. seed()
+#Train model
+
+
+#model
+#plot(model)
+#plot(varImp)
+
+
+#plot tree with rpart.plot
+
+
+#get predicted probabilities
+
+
+#get auc
