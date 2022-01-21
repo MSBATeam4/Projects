@@ -12,9 +12,9 @@ summaryStats
 library(lubridate)
 date_format <- as.Date(Fraud_Data$TRAN_TS)
 
-Fraud_Data <- mutate(Fraud_Data, ts_month = month(as.Date(Fraud_Data$TRAN_TS, '%m/%d/%Y')),
-                     Fraud_Data, ts_day = day(as.Date(Fraud_Data$TRAN_TS, '%m/%d/%Y')),
-                     Fraud_Data, ts_year = year(as.Date(Fraud_Data$TRAN_TS, '%m/%d/%Y')))
+Fraud_Data <- mutate(Fraud_Data, TS_Month = month(as.Date(Fraud_Data$TRAN_TS, '%m/%d/%Y')),
+                     Fraud_Data, TS_Day = day(as.Date(Fraud_Data$TRAN_TS, '%m/%d/%Y')),
+                     Fraud_Data, TS_Year = year(as.Date(Fraud_Data$TRAN_TS, '%m/%d/%Y')))
 
 #Missing Value Handling
 Fraud_Data$TRAN_ID <- ifelse(is.na(Fraud_Data$TRAN_ID), na.omit(Fraud_Data$TRAN_ID), Fraud_Data$TRAN_ID)
