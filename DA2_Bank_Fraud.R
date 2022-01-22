@@ -83,6 +83,27 @@ Fraud_Data$Foreign <- ifelse(Fraud_Data$STATE_PRVNC_TXT %in% c("alabama","alaska
                                                                "south carolina", "south dakota", "tennessee", "texas",
                                                                "utah", "vermont", "virginia", "washington", "west virginia",
                                                                "wisconsin", "wyoming"),0,1)
+
+#Scatter plot for Transaction amt by month of the year, fraud or not
+ggplot(data = Fraud_Data) + 
+  geom_point(mapping = aes(x = TS_Month, y = TRAN_AMT, color = FRAUD_NONFRAUD))
+#Scatter plot for Transaction amt by customer age, fraud or not
+ggplot(data = Fraud_Data) + 
+  geom_point(mapping = aes(x = CUST_AGE, y = TRAN_AMT, color = FRAUD_NONFRAUD))
+#Transaction amount by age groupings, fraud or not
+ggplot(data = Fraud_Data) + 
+  geom_point(mapping = aes(x = AgeBin, y = TRAN_AMT, color = FRAUD_NONFRAUD))
+#Scatter plot for Transaction amt by day of the month, fraud or not
+ggplot(data = Fraud_Data) + 
+  geom_point(mapping = aes(x = TS_Day, y = TRAN_AMT, color = FRAUD_NONFRAUD))
+#Scatter plot for Transaction amt by number of accts customer has at bank, fraud or not
+ggplot(data = Fraud_Data) + 
+  geom_point(mapping = aes(x = NumbAccountBin, y = TRAN_AMT, color = FRAUD_NONFRAUD))
+#Bar chart for transaction by location of transaction (US OR INTL), fraud or not
+ggplot(data = Fraud_Data) + 
+  geom_bar(mapping = aes(x = Foreign, fill = FRAUD_NONFRAUD))
+
+
 #Dummy Variables
 
 
