@@ -103,11 +103,36 @@ ggplot(data = Fraud_Data) +
 ggplot(data = Fraud_Data) + 
   geom_bar(mapping = aes(x = Foreign, fill = FRAUD_NONFRAUD))
 
+Carrier_FvNF <- ggplot(data = Fraud_Data)+
+  stat_count(mapping = aes(x = CARR_NAME, color = FRAUD_NONFRAUD))
+
+Carrier_fraud <- Fraud_Data %>% 
+  group_by(CARR_NAME, FRAUD_NONFRAUD) %>%
+  summarise(count = n()) %>% 
+  arrange(desc(count)) %>% 
+  filter(FRAUD_NONFRAUD == "Fraud",
+         count > 50)
+               
 
 #Dummy Variables
+#get predictors without response (and those predictors with only one value as well as date/timestamp values)
+Fraud_Data_predictors <- select(Fraud_Data, -FRAUD_NONFRAUD, -ACTN_CD, -ACTN_INTNL_TXT, -TRAN_TYPE_CD, 
+                                -PWD_UPDT_TS, -PH_NUM_UPDT_TS, -TRAN_TS, -TRAN_DT, -CUST_SINCE_DT, 
+                                -ACTVY_DT)
+#create dummy vars expect for the response
+dummies_model <- dummyVars(~., data = Fraud_Data_predictors)
 
+#provide only predictors that are now convert to dummy variables
+Fraud_Data_predictors_dummy <- data.frame(predict(dummies_model, newdata = Fraud_Data))
+
+#recombine predictors including dummy variables with response
+Fraud_Data <- cbind(FRAUD_NONFRAUD = Fraud_Data$FRAUD_NONFRAUD, PWD_UPDT_TS = Fraud_Data$PWD_UPDT_TS, PH_NUM_UPDT_TS = Fraud_Data$PH_NUM_UPDT_TS,
+                    TRAN_TS = Fraud_Data$TRAN_TS, TRAN_DT = Fraud_Data$TRAN_DT, CUST_SINCE_DT = Fraud_Data$CUST_SINCE_DT, 
+                    ACTVY_DT = Fraud_Data$ACTVY_DT, Fraud_Data_predictors_dummy)
 
 #Convert FRAUD_NOFRAUD to a factor
+Fraud_Data$FRAUD_NONFRAUD <- as.factor(Fraud_Data$FRAUD_NONFRAUD)
+Fraud_Data$FRAUD_NONFRAUD <- fct_recode(Fraud_Data$FRAUD_NONFRAUD, NonFraud = 'Non-Fraud', Fraud = 'Fraud')
 
 
 #set.seed()
