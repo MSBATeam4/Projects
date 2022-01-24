@@ -41,6 +41,9 @@ Fraud_Data$ACTN_CD <- ifelse(is.na(Fraud_Data$ACTN_CD), "SCHPMT", Fraud_Data$ACT
 Fraud_Data$ACTN_INTNL_TXT <- ifelse(is.na(Fraud_Data$ACTN_INTNL_TXT), "P2P_COMMIT", Fraud_Data$ACTN_INTNL_TXT)
 Fraud_Data$TRAN_TYPE_CD <- ifelse(is.na(Fraud_Data$TRAN_TYPE_CD), "P2P", Fraud_Data$TRAN_TYPE_CD)
 Fraud_Data$ACTVY_DT <- ifelse(is.na(Fraud_Data$ACTVY_DT), na.omit(Fraud_Data$ACTVY_DT), Fraud_Data$ACTVY_DT)
+Fraud_Data$TS_Month <- ifelse(is.na(Fraud_Data$TS_Month), na.omit(Fraud_Data$TS_Month), Fraud_Data$TS_Month)
+Fraud_Data$TS_Day <- ifelse(is.na(Fraud_Data$TS_Day), na.omit(Fraud_Data$TS_Day), Fraud_Data$TS_Day)
+Fraud_Data$TS_Year <- ifelse(is.na(Fraud_Data$TS_Year), na.omit(Fraud_Data$TS_Year), Fraud_Data$TS_Year)
 
 
 #Transaction amount greater than available cash? 
