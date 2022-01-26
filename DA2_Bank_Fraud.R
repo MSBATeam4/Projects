@@ -45,6 +45,23 @@ Fraud_Data$TS_Month <- ifelse(is.na(Fraud_Data$TS_Month), na.omit(Fraud_Data$TS_
 Fraud_Data$TS_Day <- ifelse(is.na(Fraud_Data$TS_Day), na.omit(Fraud_Data$TS_Day), Fraud_Data$TS_Day)
 Fraud_Data$TS_Year <- ifelse(is.na(Fraud_Data$TS_Year), na.omit(Fraud_Data$TS_Year), Fraud_Data$TS_Year)
 
+#Consolidate Carriers to show as listed or unlisted.
+Fraud_Data$CARR_NAME <- ifelse(Fraud_Data$CARR_NAME != 'other/unlisted', 'listed', 'other/unlisted')
+
+#Clean and consolidate region names
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "mid atlantic", "northeast", Fraud_Data$RGN_NAME)
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "pacific northwest", "northwest", Fraud_Data$RGN_NAME)
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "pacific", "west coast", Fraud_Data$RGN_NAME)
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "south central", "south central", Fraud_Data$RGN_NAME)
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "north west", "northwest", Fraud_Data$RGN_NAME)
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "south east", "southeast", Fraud_Data$RGN_NAME)
+Fraud_Data$RGN_NAME <- ifelse(Fraud_Data$RGN_NAME == "great lakes", "great lakes",
+                       ifelse(Fraud_Data$RGN_NAME == "southwest", "southwest",
+                       ifelse(Fraud_Data$RGN_NAME == "mountain", "mountain", 
+                       ifelse(Fraud_Data$RGN_NAME == "midwest", "midwest",
+                       ifelse(Fraud_Data$RGN_NAME == "unknown", "unknown", "international")))))
+
+
 
 #Transaction amount greater than available cash? 
 Fraud_Data$Can_Afford <- c()
