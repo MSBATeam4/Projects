@@ -291,6 +291,7 @@ plot(Fraud_xgb_model) #provides plot of parameter tuning via cross validation
 
 #plot variable importance
 plot(varImp(Fraud_xgb_model))
+varImp(Fraud_xgb_model)
 
 #First, get the prdicted probablities of the test data.
 predprob_fraud_xgb <- predict(Fraud_xgb_model, Fraud_data_test, type = 'prob')
