@@ -174,6 +174,19 @@ Carrier_list_Unlist <- Fraud_Data %>%
   arrange(desc(count)) %>% 
   filter(FRAUD_NONFRAUD == "Fraud",
          count > 50)
+RGN_Fraud <- Fraud_Data %>% 
+  group_by(Fraud_Data$RGN_NAME, FRAUD_NONFRAUD) %>% 
+  summarize(Fraud_count = n()) %>% 
+  arrange(desc(Fraud_count)) %>% 
+  filter(FRAUD_NONFRAUD == "Fraud")
+  
+RGN_NonFraud <- Fraud_Data %>% 
+  group_by(Fraud_Data$RGN_NAME, FRAUD_NONFRAUD) %>% 
+  summarize(NonFraud_count = n()) %>% 
+  arrange(desc(NonFraud_count)) %>% 
+  filter(FRAUD_NONFRAUD == "Non-Fraud")
+  
+cmb_RGN <- cbind(RGN_NAME = RGN_Fraud$`Fraud_Data$RGN_NAME`, Fraud_Prop = (RGN_Fraud$Fraud_count / RGN_NonFraud$NonFraud_count))
                
 
 #Dummy Variables
