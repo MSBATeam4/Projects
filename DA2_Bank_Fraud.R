@@ -306,6 +306,25 @@ plot(Fraud_xgb_model) #provides plot of parameter tuning via cross validation
 plot(varImp(Fraud_xgb_model))
 varImp(Fraud_xgb_model)
 
+#SHAP for interactions of variables. Wasn't a lot to see here. Earlier scatterplots were much more helpful
+library(SHAPforxgboost)
+xdata <- as.matrix(select(Fraud_data_train, -FRAUD_NONFRAUD))
+shap <- shap.prep(Fraud_xgb_model$finalModel, X_train = xdata)
+
+top20 <- shap.importance(shap, names_only = TRUE)[1:20]
+for (x in top20) {
+  p <- shap.plot.dependence(
+    shap, 
+    x = x, 
+    color_feature = "auto", 
+    smooth = FALSE, 
+    jitter_width = 0.01, 
+    alpha = 0.4
+  ) +
+    ggtitle(x)
+  print(p)
+}
+
 #First, get the prdicted probablities of the test data.
 predprob_fraud_xgb <- predict(Fraud_xgb_model, Fraud_data_test, type = 'prob')
 
