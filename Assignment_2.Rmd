@@ -1,0 +1,135 @@
+---
+title: "Assignment_2"
+author: "Team 4: Trey Breen, Mariah Clark, Brinda Nirmal, Josh Smith"
+date: "2/24/2022"
+output: html_document
+---
+## 1. Provide Descriptive Statistics for the data. Format nicely, not just R printout.
+
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(haven)
+library(stargazer)
+eitc <- read_dta("eitc.dta")
+
+
+stargazer(as.data.frame(eitc), type = 'html', title = 'Descriptive Statistics', digits = 1, header = FALSE)
+
+```
+
+## 2. Calculate the sample means of all variables for (a) single women with no children, (b) single women with 1 child, and (c) single women with 2+ children. 
+**Hint: Use the tidyverse to make this table. You can either filter the data or use dplyr to construct groups.**
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(knitr)
+
+eitc$groups <- eitc$children
+eitc$groups[eitc$groups > 1] = 2
+eitc$groups <- factor(eitc$groups, levels = c(0,1,2), labels = c("No Children", '1 child', '2+ children'))
+
+#do mean on all variables
+#fix headings
+mean_table <- eitc %>% 
+  group_by(groups) %>%
+  summarise(mean_age = mean(age), mean_urate = mean(urate), mean_nonwhite = mean(nonwhite), mean_finc = mean(finc), mean_earn = mean(earn), mean_ed = mean(ed), mean_work = mean(work), mean_unearn = mean(unearn)) %>% 
+  kable(booktabs = TRUE, col.names = c('Groups', 'Age', 'Unemp Rate', 'NonWhite', 'Family Income', 'Annual Earnings', 'Years of Education', 'Employed Last Year', 'Unearned Income'))
+
+mean_table
+
+
+```
+
+
+## 3. Create a new variable with earnings conditional on working (missing for non-employed) and calculate the means of this by group as well.
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+eitc$earn_w <- eitc$earn
+eitc$earn_w[eitc$work == 0] <- NA
+
+eitc %>% group_by(groups) %>% summarize(mean_earn_W = mean(earn_w, na.rm = TRUE)) %>% 
+  kable(booktabs = TRUE, col.names = c('Groups', 'Avg Employed Earnings'))
+
+```
+
+## 4. Construct a variable for the “treatment” called ANYKIDS and a variable for after the expansion (called POST93-should be 1 for 1994 and later).
+```{r warning=FALSE, message=FALSE}
+eitc$treatment <- ifelse(eitc$children>0,1,0)
+eitc$post93 <- ifelse(eitc$year > 1993, 1, 0)
+```
+
+## 5. Create a graph which plots mean annual employment rates by year (1991-1996) for single women with children (treatment) and without children (control). **Hint: you should have two lines on the same graph.**
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+minfo = aggregate(eitc$work, list(eitc$year,eitc$treatment == 1), mean)
+names(minfo) = c("YR","Treatment","LFPR")
+
+minfo$Group[1:6] = "Single women, no children"
+minfo$Group[7:12] = "Single women, children"
+
+require(ggplot2)    
+qplot(YR, LFPR, data=minfo, geom=c("point","line"), colour=Group,
+      xlab="Year", ylab="Labor Force Participation Rate")+geom_vline(xintercept = 1994)
+
+```
+
+## 6. Calculate the unconditional difference-in-difference estimates of the effect of the 1993 EITC expansion on employment of single women. **Hint: This means calculate the DID treatment effect by just subtracting mean (i.e. no regression)**
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+# Compute the four data points needed in the DID calculation:
+a = sapply(subset(eitc, post93 == 0 & treatment == 0, select=work), mean)
+b = sapply(subset(eitc, post93 == 0 & treatment == 1, select=work), mean)
+c = sapply(subset(eitc, post93 == 1 & treatment == 0, select=work), mean)
+d = sapply(subset(eitc, post93 == 1 & treatment == 1, select=work), mean)
+# Compute the effect of the EITC on the employment of women with children:
+didEffects <- (d-c)-(b-a)
+```
+
+> The unconditional mean of work is `r didEffects`.
+
+## 7. Now run a regression to estimate the conditional difference-in-difference estimate of the effect of the EITC. Use all women with children as the treatment group. **Hint: your answers for 6 and 7 should match.**
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+#Regression
+reg1 = lm(work ~ post93 + treatment + post93*treatment, data = eitc)
+
+stargazer(reg1, type = 'html', single.row = TRUE, omit.table.layout = 'n')
+```
+
+## 8. Re-estimate this model including demographic characteristics. These are characteristics of the person.
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(lfe)
+reg2 = felm(work ~ post93 + treatment + post93*treatment + age + ed + unearn + nonwhite + finc | state + year, data = eitc)
+
+stargazer(reg1, reg2, type = 'html', single.row = TRUE, omit.table.layout = 'n', object.names = TRUE)
+```
+
+## 9. Add the state unemployment rate and allow its effect to vary by the presence of children.
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+
+reg3 = felm(work ~ post93 + treatment + post93*treatment + age + ed + unearn + nonwhite + finc + urate + urate:treatment | state + year, data = eitc)
+
+stargazer(reg1, reg2, reg3, type = 'html', single.row = TRUE, omit.table.layout = 'n', object.names = TRUE)
+
+```
+
+## 10. Allow the treatment effect to vary by those with 1 or 2+ children. You will need to create separate dummy variables. These will become your new treatment variables.
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+reg4 = felm(work ~ post93 + groups + post93*groups + age + ed + unearn + nonwhite + finc + urate + urate:groups | state + year, data = eitc)
+
+stargazer(reg1, reg2, reg3, reg4, type = 'html', single.row = TRUE, omit.table.layout = 'n', object.names = TRUE)
+
+```
+
+## 11. Return to your original equation in part 8. Estimate a “placebo” treatment model. Take data from only the pre-reform period. Use the same treatment and control groups. Introduce a placebo policy that begins in 1992 (so 1992 and 1993 both have this fake policy).
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+eitc$Pre93 <- ifelse(eitc$year <=1993, 1, 0)
+eitc$placebo <- ifelse((eitc$year >=1992 & eitc$year <=1993), 1, 0)
+#eitc$PostPlacebo <- ifelse(eitc$year > 1993, 1, 0)
+
+reg5 = felm(work ~ Pre93:treatment + treatment + placebo:treatment + age + ed + unearn + nonwhite + finc | state + year, data = eitc)
+
+stargazer(reg2, reg5, type = 'html', single.row = TRUE, omit.table.layout = 'n', object.names = TRUE)
+
+require(ggplot2)    
+qplot(YR, LFPR, data=minfo, geom=c("point","line"), colour=Group,
+      xlab="Year", ylab="Labor Force Participation Rate", xlim = c(1991, 1994))+geom_vline(xintercept = 1992)
+
+```
+
+> Since the variable of treatment (children or not) interacting with our newly created placebo (1992-1993) is not signifcant, our Parallel Trends Assumption does not fail to be true. In other words, **our placebo test shows that the placebo effect does not exist, as it should not exist. If the pre93(1991-1993) had never been treated, the average change in the prior year employment would have been identical to the average change in outcome for the placebo group (1992-1993 time period).** Our labor force participation rate by year visual allows us to see the confirmation of parallel trends assumption. Because our placebo model confirms the Parallel Trends Assumption, we can be confident that our original policy implementation model has validity and our estimates of the models coeffcieints are without causal effect bias. **We can be confident that the policy change was the true cause of change in employment (work variable).**
