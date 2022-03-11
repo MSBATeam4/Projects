@@ -1,0 +1,230 @@
+---
+title: "Assignment_4"
+author: 'Team 4: Trey Breen, Mariah Clark, Vishaal Kakade, Brinda Nirmal, Josh Smith'
+date: "3/7/2022"
+output: html_document
+---
+
+__Problem Set: Ordered Probit Methodology The San Francisco Airport is very concerned about customer satisfaction. Attached you will find a customer satisfaction survey for the SFO. Q7ALL is a categorical variable ranking the customer’s satisfaction from unacceptable to outstanding__
+
+__a) Create a table summarizing the counts of the potential outcomes and report them as percentages.__
+```{r echo = FALSE, results='asis', warning=FALSE, message=FALSE}
+library(readr)
+library(tidyverse)
+library(knitr)
+library(MASS)
+library(stargazer)
+library(erer)
+library(oglmx)
+library(texreg)
+
+sfo <- read.csv('2015_SFO_Customer_Survey.csv')
+#Do below for all Q7 questions, create names for columns like below.
+Q7All <- round(prop.table(table(factor(sfo$Q7ALL, levels = c(0,1,2,3,4,5,6), labels = c('Blank', 'Unacceptable', 'Fair', 'Good', 'Very Good', 'Outstanding', 'NA')))), digits = 3)
+
+sum_table <- t(sapply(sfo[,c('Q7ART', 'Q7FOOD', 'Q7STORE', 'Q7SIGN', 'Q7WALKWAYS', 'Q7SCREENS', 'Q7INFODOWN', 'Q7INFOUP', 'Q7WIFI', 'Q7PARK', 'Q7AIRTRAIN', 'Q7LTPARKING', 'Q7RENTAL', 'Q7ALL')], FUN = function(x) round(prop.table(table(factor(x, levels = c(0,1,2,3,4,5,6), labels = c('Blank', 'Unacceptable', 'Fair', 'Good', 'Very Good', 'Outstanding', 'NA')))), digits = 3)))
+
+rownames(sum_table) <- c('Art Work', 'Food', 'Shops', 'Signage/Directions', 'Walkways', 'Screens/Monitors', 'Lower Level Info Booths', 'Upper Level Info Booths', 'WIFI', 'Parking', 'AirTrain', 'Long Term Parking', 'Rental Car', 'Overall Rating')
+#Make some row names more informative that as is. INFOUP and INFODOWN
+sum_table %>% kable(booktabs = TRUE)
+
+```
+
+
+__b) Review the available variables. Which variables capture customers characteristics?__
+```{r echo=FALSE}
+var_table <- data.frame(Variable_Name = c("Q16LIVE", "HOME", "Q18AGE", "Q19GENDER", "Q20INCOME", "LANG"), Description = c("Where Customer Lives", "Home Location of Customer", "Customer's Age Group", "The Customer's Gender", "Household Income", "Customer's Language"))
+
+var_table %>% kable(bookends = TRUE, col.names = c("Variable Name", "Description"))
+
+```
+
+
+__c) Estimate an ordered probit model of overall satisfaction using customer characteristics as explanatory variables.__
+```{r echo=FALSE, results='asis', warning=FALSE, message=FALSE}
+smalldat <- sfo[sfo$Q7ALL > 0 & sfo$Q7ALL < 6, ]
+
+#add in Q17s
+reg1 <- polr(factor(Q7ALL)~factor(Q16LIVE)+factor(HOME)+factor(Q18AGE)+factor(Q19GENDER)+factor(Q20INCOME)+factor(LANG), data = smalldat, weights = WEIGHT, method = "probit")
+
+
+stargazer(reg1, type = 'html', single.row = TRUE, covariate.labels = c("Bay Area", "NorCal", "Another Region", "San Mateo", "Alameda", "Santa Clara", "Contra Costa", "Marin", "Sonoma", "Solano", "Napa", "Western US", "Midwestern US", "Eastern US", "Other North America (Canada, Mexico, and Carribean)", "Central/South America", "Europe", "Asia/Japan", "Middle East", "Africa", "Austrailia/New Zealand/Pacific", "NA but from Bay Area", "NA but from NorCal", "Blank/Unknown", "Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65 and over", "Don't Know/Refused", "Male", "Female", "Other", "Under $50,000", "$50,000-$100,000", "$100,001-$150,000", "Over $150,000", "Other Currency", "Blank/Multiple Responses", "Spanish", "Chinese", "Japanese"))
+ 
+```
+
+
+__d) Report Marginal Effects and interpret the coefficients.__
+```{r echo=FALSE, warning = FALSE, message = FALSE, results='asis'}
+reg2 <- oprobit.reg(factor(Q7ALL) ~ factor(Q16LIVE)+factor(HOME)+factor(Q18AGE)+factor(Q19GENDER)+factor(Q20INCOME)+factor(LANG), data = smalldat)
+
+htmlreg(list(reg2), single.row = TRUE, center = NULL,custom.coef.names = c("Bay Area", "NorCal", "Another Region", "San Mateo", "Alameda", "Santa Clara", "Contra Costa", "Marin", "Sonoma", "Solano", "Napa", "Western US", "Midwestern US", "Eastern US", "Other North America (Canada, Mexico, and Carribean)", "Central/South America", "Europe", "Asia/Japan", "Middle East", "Africa", "Austrailia/New Zealand/Pacific", "NA but from Bay Area", "NA but from NorCal", "Blank/Unknown", "Under 18", "18-24", "25-34", "35-44", "45-54", "55-64", "65 and over", "Don't Know/Refused", "Male", "Female", "Other", "Under $50,000", "$50,000-$100,000", "$100,001-$150,000", "Over $150,000", "Other Currency", "Blank/Multiple Responses", "Spanish", "Chinese", "Japanese", "(Unacceptable -> Fair)", "(Fair -> Good)", "(Good -> Very Good)", "(Very Good -> Outstanding)"))
+
+#Interpretation: Odds of that customer group being more satisfied. 
+
+```
+> Below are the variables that were most significant (pvalue < .01) in our model.
+
++ **Middle East**: As compared to San Francisco County, the middle east demographic is significantly more likely to be satisifed with the conditions of the airport, overall.   
+
++ **Female**: The female demographic is more likley to be satisfied with the with the conditions of the airport, overall. 
+
++ **Japanese**: As compared to English speaking customers, the Japanese speaking customers are more likely to be less satisfied with the conditions of the airport, overall. 
+
++ **Threshold Unacceptable to Fair**: As expected, as customer ratings moved from unacceptable to fair, their overall satisfaction with the condtions of the airport are still low. 
+
++ **Threshold Very Good to Outstanding**: As expected, as customer ratings moved from very good to outstanding, their overall satisfcation with the conditions of the airport are still high. 
+
+> We did observe other varibles that were significant at the .05 level, however they did not drive the model as strongly as those mentioned above. 
+
+
+
+```{r}
+margins <- margins.oglmx(reg2)
+
+```
+
+
+Problem Set: BLP Methodology In this problem you will perform demand estimation using market level
+data. Run the following code in R
+
+```{r echo = FALSE, message=FALSE, warning=FALSE}
+#install.packages("BLPestimatoR")
+library(BLPestimatoR)
+data(productData_cereal)
+
+```
+
+A table of market shares, prices, and characteristics of the top-selling brands of cereal in 1992 across several markets is now available in your environment. The data are aggregated from household-level scanner data
+(collected at supermarket checkout counters). We observe the following variables price = price paid for the cereal const = just a column of 1’s that you can ignore. sugar = how much sugar is in the cereal mushy = how mushy the cereal becomes with milk. share = market share of the cereal in that particular market. This number is between 0 and 1. cdid = tells you which market you are in. product_id = tells you which cereal is captured. IV1-IV20 = 20 constructed instrumental variables. 
+
+Assume a utility specification for uij , household i’s utility from cereal j in market m:
+uijm = Xjβ + αpjm + ξjm + vijm
+where Xj are characteristics of brand j, ξjm is an unobserved (to the econometrician) quality parameter
+for brand j, and vijm is a disturbance term which is identically and independently distributed (i.i.d.) over
+households i and brands j. As in Berry (1994), denote the mean utility level from brand j as
+δj ≡ Xjβ + αpj + ξj
+If we assume that the vij ’s are distributed i.i.d. type I extreme value, then the resulting expressions for the
+market shares of each brand j; j = 1, ..., 51.
+sjm =
+exp(Xjβ + αpjm + ξjm)
+PJ
+j
+exp(Xjβ + αpjm + ξjm)
+We need to normalize the outside good (i.e. all Beta’s for this option equal zero). After all, if a household
+does not buy cereal, then the price is zero and the cereal characteristics of the non-existent cereal is zero too.
+
+## 1. Find the market share of the outside good in every market. That is, sum all of the shares across all
+of the cereals for each market. You will notice that this number is less than 1. The market share of
+the outside option is equal to 1 - total cereal market share in each market. (Hint: you can use the
+aggregate to sum up the cereal shares by market)
+Save this new dataframe as share_outside.
+merge the share_outside data frame with the productData_cereal data frame.
+The market share of the outside option after being normalized is given below.
+s0m = 11 + PJi exp(Xjβ + αpj + ξjm)
+The market share for cereal j in market m is then given by
+sjm =
+exp(Xjβ + αpjm + ξjm)
+1 + PJ
+j
+exp(Xjβ + αpjm + ξjm)
+
+```{r}
+m1 <- productData_cereal %>% 
+        group_by(cdid) %>% 
+          summarise(outside_share = 1-sum(share))
+
+
+```
+
+
+
+**Next we implement the BLP two-step estimator.**
+## 2. You can think of the market share as a limited dependent variable that is limited between zero and one. We showed that you can transform a multinomial logit probability into a linear equation using a transformation of the shares. Look in your notes to see how we can transform shares into a linear function of the X’s. Call this variable delta in your dataset.
+```{r}
+#Dependent variable for share regression
+m2 <- merge(m1, productData_cereal)
+m2$y <- log(m2$share) - log(m2$outside_share)
+
+```
+
+
+## 3. Estimate the second stage regression of delta_j on Xj and pj in different ways: 
+__(a) OLS: estimate the relationship between the delta’s, price, and the product characteristics (sugar and mushy).__
+```{r echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+regols1 <- lm(y ~ price + sugar + mushy, data = m2)
+stargazer(regols1, type = 'html', single.row = TRUE)
+```
+
+
+__(b) OLS: Do the same as above, but estimate market fixed effects. Do your results change? If so how? What are the fixed effects capturing?__
+```{r echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(lfe)
+regols2 <- felm(y ~ price + sugar + mushy| cdid, data = m2)
+
+stargazer(regols1, regols2, type = 'html', single.row = TRUE, object.names = TRUE)
+```
+
+> Yes our results changed because the fixed effect model is capturing difference in tastes in different markets, whereas before we left out the CDID variable. Leaving CDID (markets) out of the model resulted in inaccurate estimates of the effects price, sugar, and mushiness have on how well a cereal sells. Including CDID (markets) in our model shows us that we would have under estimated the effect of price, over estimated the effect of sugar, and observed no difference in mushiness. 
+
+__(c) 2SLS: using the supplied instrumental variables estimate the equation you used in part b using IV.__
+```{r echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(AER)
+regiv1 <- ivreg(y ~ price + sugar + mushy + factor(cdid) | IV1 + IV2 + IV3 + IV4 + IV5 + IV6 + IV7 + IV8 + IV9 + IV10 + IV11 + IV12 + IV13 + IV14 + IV15 + IV16 + IV17 + IV18 + IV19 + IV20 + factor(cdid), data = m2)
+
+stargazer(regols1, regols2, regiv1, type = 'html', single.row = TRUE, object.names = TRUE, keep = c('price', 'sugar', 'mushy'))
+
+```
+
+
+__(d) 2SLS: perform the first stage F-stat test to judge the strength of your instruments__
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(car)
+first_stage1 <- lm(price ~ IV1 + IV2 + IV3 + IV4 + IV5 + IV6 + IV7 + IV8 + IV9 + IV10 + IV11 + IV12 + IV13 + IV14 + IV15 + IV16 + IV17 + IV18 + IV19 + IV20 + factor(cdid), data = m2)
+
+first_stage2 <- lm(sugar ~ IV1 + IV2 + IV3 + IV4 + IV5 + IV6 + IV7 + IV8 + IV9 + IV10 + IV11 + IV12 + IV13 + IV14 + IV15 + IV16 + IV17 + IV18 + IV19 + IV20 + factor(cdid), data = m2)
+
+first_stage3 <- lm(mushy ~ IV1 + IV2 + IV3 + IV4 + IV5 + IV6 + IV7 + IV8 + IV9 + IV10 + IV11 + IV12 + IV13 + IV14 + IV15 + IV16 + IV17 + IV18 + IV19 + IV20 + factor(cdid), data = m2)
+
+f1 <- lht(first_stage1, c('IV1=0' , 'IV2=0' , 'IV3=0' , 'IV4=0' , 'IV5=0' , 'IV6=0' , 'IV7=0' , 'IV8=0' , 'IV9=0' , 'IV10=0' , 'IV11=0' , 'IV12=0' , 'IV13=0' , 'IV14=0' , 'IV15=0' , 'IV16=0' , 'IV17=0' , 'IV18=0' , 'IV19=0' , 'IV20=0'))
+
+f2 <- lht(first_stage2, c('IV1=0' , 'IV2=0' , 'IV3=0' , 'IV4=0' , 'IV5=0' , 'IV6=0' , 'IV7=0' , 'IV8=0' , 'IV9=0' , 'IV10=0' , 'IV11=0' , 'IV12=0' , 'IV13=0' , 'IV14=0' , 'IV15=0' , 'IV16=0' , 'IV17=0' , 'IV18=0' , 'IV19=0' , 'IV20=0'))
+
+f3 <- lht(first_stage3, c('IV1=0' , 'IV2=0' , 'IV3=0' , 'IV4=0' , 'IV5=0' , 'IV6=0' , 'IV7=0' , 'IV8=0' , 'IV9=0' , 'IV10=0' , 'IV11=0' , 'IV12=0' , 'IV13=0' , 'IV14=0' , 'IV15=0' , 'IV16=0' , 'IV17=0' , 'IV18=0' , 'IV19=0' , 'IV20=0'))
+
+#stargazer(f1$F, f2$F, f3$F, type = 'text', covariate.labels = c('first_stage1 F stat', 'first_stage2 F Stat', 'first_stage3 F stat'))
+f_stage <- data.frame(StageSeq = c('f1','f2','f3'), F_Stat = c('9255.227', '2252.002', '1213.756'))
+
+f_stage %>% kable(bookends = TRUE, col.names = c('First Stage LHT', 'F Statistics'))
+
+```
+> Our F stat tests here show that in each first stage run, we observe strong instruments as the F stats are all greater than 10. 
+
+__(e) 2SLS: use the overidentification to see if you IV estimates are sensitive to the instruments you included.__
+```{r echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+sargent_reg <- lm(regiv1$residuals ~ IV1 + IV2 + IV3 + IV4 + IV5 + IV6 + IV7 + IV8 + IV9 + IV10 + IV11 + IV12 + IV13 + IV14 + IV15 + IV16 + IV17 + IV18 + IV19 + IV20 + factor(cdid), data = m2)
+
+s1 <- lht(sargent_reg, c('IV1=0' , 'IV2=0' , 'IV3=0' , 'IV4=0' , 'IV5=0' , 'IV6=0' , 'IV7=0' , 'IV8=0' , 'IV9=0' , 'IV10=0' , 'IV11=0' , 'IV12=0' , 'IV13=0' , 'IV14=0' , 'IV15=0' , 'IV16=0' , 'IV17=0' , 'IV18=0' , 'IV19=0' , 'IV20=0'))
+
+s1LHT <- data.frame(LHT = c('s1'), c('8.758'))
+
+s1LHT %>% kable(bookends = TRUE, col.names = c('Sargent LHT', 'F Statistic'))
+
+stargazer(sargent_reg, type = 'html', single.row = TRUE)
+
+
+```
+> Our sargent model, which tests the residuals of the insturmental variable model against those insturment variables used, showed that our model is sensitive to the insturments included. We observe an F Statistic that is less than 10 which indicates a weak instrument.
+
+__(f) 2SLS: can you use a smaller set of instruments to get a better result? If so, then what instruments did you include? Report your results including the first stage F-stats and the overidentification test.__
+```{r echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+regiv2 <- ivreg(y ~ price + sugar + mushy + factor(cdid) | IV1 + IV2 + IV3 + IV4 + IV8 + IV10 + IV11 + IV12 + IV13 + IV15 + IV16 + IV17 + IV19 + factor(cdid), data = m2)
+#summary(regols2, diagnostics = TRUE)
+stargazer(regols1, regols2, regiv1, regiv2, type = 'html', single.row = TRUE, object.names = TRUE, keep = c('price', 'sugar', 'mushy'), omit.stat = 'f', add.lines = list(c('F Statistic', '64.593***', '63.32***', '170.53***', '13.076')))
+
+
+```
+
+> Using a smaller set of instruments does return an improved result. We removed IV5, IV6, IV7, IV14, IV18, and IV20 as they were correlated with the error term. We included price, sugar, mushy, cdid, IV1, IV2, IV3, IV4, IV8, IV10, IV11, IV12, IV13, IV15, IV16, IV17 and IV19. Removing them allows us to see that we would have been wrong to reject the null hypothesis as originally assumed based on the model that included our weak instruments which were correlated with the error term. 
+
+
+
