@@ -1,0 +1,218 @@
+---
+title: "Assignment_3"
+author: 'Team 4: Trey Breen, Mariah Clark, Vishaal Kakade, Brinda Nirmal, Josh Smith'
+date: "3/2/2022"
+output: html_document
+---
+
+In this assignment we’ll analyze the effect of going to Catholic school, as opposed to public school, on student achievement. Because students who attend Catholic school on average are different from students who attend public school, we will use propensity score matching to get more credible causal estimates of Catholic schooling.
+
+
+To examine the effect of going to Catholic school __(“Treated”)__ versus public school __(“Control”)__ on student achievement using matching we will go through the following steps:
+
+- Estimate the propensity score (the probability of being Treated given a set of pre-treatment covariates).
+- Examine the region of common support.
+- Choose and execute a matching algorithm. In this tutorial we’ll use nearest neighbor propensity score matching.
+- Examine covariate balance after matching.
+- Estimate treatment effects.
+
+In addition, before we implement a matching method, we’ll conduct the following analyses using the non-matched data:
+
+- Examine the difference-in-means between Treated and Control for the outcome variable.
+- Examine the difference-in-means between Treated and Control for pre-treatment covariates.
+Before we start, load a few packages and read in ecls.csv:
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+library(MatchIt)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(knitr)
+library(stargazer)
+
+ecls <- read.csv("ecls.csv")
+```
+# 1 Pre-analysis using non-matched data
+## 1.1 Difference-in-means: outcome variable
+Here is some basic information about public and catholic school students in terms of math achievement. 
+
+Note that we’re using students’ standardized math score (c5r2mtsc_std) – with a mean of 0 and standard deviation of 1 – as the outcome variable of interest. 
+
+The independent variable of interest is catholic (1 = student went to catholic school; 0 = student went to public school).
+
+Find the mean and standard error of the standardized math score for each group.
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+ecls_table <- ecls %>% 
+  group_by(factor(catholic)) %>% 
+    summarise(mean_score = mean(c5r2mtsc_std), sd_score = sd(c5r2mtsc_std)) %>% 
+    kable(booktabs = TRUE, digits = 4, col.names = c('Catholic', 'Score Avg', 'Score StdDev'))
+
+ecls_table
+
+```
+
+
+## 1.2 Test between the groups
+
+Use a standard t-test, test if there is a difference in the standardized math test scores between the two groups.
+```{r echo = FALSE, warning=FALSE, message= FALSE, results='asis'}
+t_test <- t.test(ecls$c5r2mtsc_std~factor(ecls$catholic))
+
+
+
+```
+
+> We tested the mean test scores between catholic and non-catholic schools. The null hypothesis was that they had equal means and the p-value was equal to `r t_test$p.value`. Given this p-value we reject the null hypothesis. 
+
+## 1.3 Difference-in-means: pre-treatment covariates
+We’ll work with the following covariates for now:
+
+- `race_white`: Is the student white (1) or not (0)?
+- `p5hmage`: Mother’s age
+- `w3income`: Family income
+- `p5numpla`: Number of places the student has lived for at least 4 months
+- `w3momed_hsb`: Is the mother’s education level high-school or below (1) or some college or more (0)?
+
+Calculate the mean for each covariate by the treatment status.
+```{r echo = FALSE}
+means_table <- ecls %>% group_by(factor(catholic)) %>% 
+  summarise(mean_race = mean(race_white, na.rm = TRUE), mean_p5hmage = mean(p5hmage, na.rm = TRUE), mean_w3income = mean(w3income, na.rm=TRUE), mean_p5numpla = mean(p5numpla, na.rm=TRUE), mean_w3momed_hsb = mean(w3momed_hsb, na.rm=TRUE)) %>% 
+  kable(booktabs = TRUE, col.names = c('Catholic', "Race", "Mothers Age", "Income", "Places Lived", "Mothers Education"))
+
+means_table
+```
+
+What do you see? Take a moment to reflect on what these differences suggest for the relationship of interest (that between Catholic schooling and student achievement).
+
+> Catholic schools tend to be comprised of more white students on average while having higher average income. Also, the mothers of students at catholic schools tend to have received more education while the student does not move around as much in the past 4 years as the non-catholic counterpart. One last point, the mothers of students in the catholic schools are older by on average of 2 years. 
+
+Perform a t-test for each variable across groups. Are there any significant differences?
+```{r echo = FALSE}
+t_test_race <- t.test(ecls$race_white~ecls$catholic)
+t_test_age <- t.test(ecls$p5hmage~ecls$catholic)
+t_test_income <- t.test(ecls$w3income~ecls$catholic)
+t_test_numpla <- t.test(ecls$p5numpla~ecls$catholic)
+t_test_w3momhsb <- t.test(ecls$w3momed_hsb~ecls$catholic)
+
+```
+
+> Our null hypothesis was that there would be no difference in the averages of our variables mothers age, income, number of places lived in the past 4 years, race, and mothers education. Based upon our pvalues listed below, we can see that is in fact, not true. We do observe a difference in the averages of these variables values. 
+
++ Mothers Age: `r t_test_age$p.value`
++ Income: `r t_test_income$p.value`
++ Number of Places lived prior 4 years: `r t_test_numpla$p.value`
++ Race: `r t_test_race$p.value`
++ Mothers Education: `r t_test_w3momhsb$p.value`
+
+# 2 Propensity score estimation
+## 2.1 Propensity Scores
+We estimate the propensity score by running a logit model (probit also works) where the outcome variable is a binary variable indicating treatment status. What covariates should you include? 
+
+For the matching to give you a causal estimate in the end, you need to include any covariate that is related to both the treatment assignment and potential outcomes. 
+
+Give a reason for including each variable.
+
+> We would include both parents education, income, race_white, p5numpla,p5hmage, w3dadscr, and w3inccat (income range). Reasons for each variable: 
+
+>+ **Both Parents Education**: We need to include these variables because they give us an indication of how much education will be emphasized from the parents to the child and this will lead to improved scores. 
++ **Income**: Income is often driven by education. Higher scores generally lead to more years of education, which leads to higher income. 
++ **Race_White**: We want to include white or non-white variable since we saw the discrepancy in the average demographics of the catholic schools. 75% of catholic schools are white. 
++ **p5numpla**: We will include the number of places lived in the past 4 years as this is an indication of stability in the home, on average. There are certain cases, think military family, where education is emphasized and the parents are well educated, but due to job constraints, have to move around a lot. The downside here is a student bouncing from one home/primary caretaker to the next and the obvious side effects just trying to maintain normalcy. 
++ **p5hmage**: We will include the mothers age since we saw that the mothers of students in catholic schools were on average 2 years older than non-catholic schools. The indication here may be that more educated, wealthier women are waiting to have children and are thus able to afford to send their child to a more expensive school (catholic). Given these factors, you would expect to see better scores from those students.
++ **w3dadscr**: We choose this variable as we expected the higher the fathers socioeconomic score, the more likely the student would be to have higher test scores. 
++ **w3inccat**: We choose this variable as it relates somewhat to the income variable, but still speaks to ranges of household income. Our expectation is that household with higher income ranges will lead to more emphasis on education. 
+
+
+## 2.2 Use logit to estimate the propensity score values
+
+Using the covariates you have selected above, estimate a logit model where the binary varialbe is 1 for catholic school and zero other wise.
+
+Provide the logit coeficients in a nice table.
+```{r echo = FALSE, results='asis', warning=FALSE, message=FALSE}
+fm1 <- glm(catholic~race_white+p5hmage+w3income+p5numpla+w3momed_hsb+w3daded_hsb+w3dadscr+w3inccat, family= binomial(link='logit'), data = ecls[complete.cases(ecls), ])
+stargazer(fm1, type = 'html', digits = 3, single.row = TRUE, omit.table.layout = 'n')
+
+
+```
+
+
+## 2.3 Save the propensity scores
+
+Using the model you estimated in part 2.2, predict the probability of being in a catholic school for each observation and save these data in a new variable within your dataframe called ps_score.
+
+```{r}
+ec2 <- ecls[complete.cases(ecls), ]
+ec2$ps_score <- predict(fm1, type ="response")
+
+```
+
+
+
+## 2.4 Create a Historgram for both groups
+
+Make a historgram of the propensity scores for each group, Catholic and public school.
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+ec2$catholic <- factor(ec2$catholic, levels = c(0,1), labels = c('Non Catholic', 'Catholic'))
+ec2 %>% ggplot(aes(x=ps_score, fill=catholic)) +
+  geom_histogram()+
+  labs(title = "Propensity Scores: Catholic vs Non Catholic",
+       x = "Propensity Score")
+
+```
+
+
+
+## 2.5 Estimate the propensity score treatment effect
+
+Use the package Matchit to estimate the propensity score model and treatment effect. Use the `nearest neighbor` approach for matching.
+```{r echo = FALSE, results='asis', warning=FALSE, message=FALSE}
+
+library(MatchIt)
+m.out = matchit(catholic~race_white+p5hmage+w3income+p5numpla+w3momed_hsb+w3daded_hsb+w3dadscr+w3inccat, data = ec2, method = 'nearest', ratio = 1)
+
+matched_matrix <- summary(m.out)$n
+
+m1 <- match.data(m.out)
+reg1 <- lm(c5r2mtsc_std~catholic+race_white+p5hmage+w3income+p5numpla+w3momed_hsb+w3daded_hsb+w3dadscr+w3inccat, data = ec2)
+reg2 <- lm(c5r2mtsc_std~catholic+race_white+p5hmage+w3income+p5numpla+w3momed_hsb+w3daded_hsb+w3dadscr+w3inccat, data =ecls)
+
+stargazer(reg1, reg2, type = 'html', object.names = TRUE, digits = 4, single.row = TRUE, omit.table.layout = 'n')
+
+```
+> We observe the catholic variable is negative for both models. In fact, we are starting to see that whether or not a student is in a catholic school bears even less on test scores when we match the data with our propensity score matching model. Ultimately, scores are higher because of the people, not the school. 
+
+
+## 2.6 A love plot
+
+Perform a balance test as we did in the notes, but use a Love plot.
+
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(cobalt)
+love.plot(m.out, binary = 'std')
+```
+
+
+## 2.7 Compare results
+
+Compare your propensity score results with those found using non-matched data in part 1.
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+t_test_m1 <- t.test(m1$c5r2mtsc_std~m1$catholic)
+
+```
+> + **Unmatched T_Test Estimates (Non Catholic, Catholic)**: `r t_test$estimate`
+> + **Matched T_Test Estimates (Non Catholic, Catholic)**: `r t_test_m1$estimate`
+
+> We can compare the original t test mean sample estimates with the matched t test sample esitmates and see that being in a catholic school does not postively impact the math test scores as we originally thought in our first test. Our mean estimates for not being a student of a catholic school showed a negative estimate while being in a catholic school was positve. Now, after matching, we see both are positive but being in a catholic school makes less of a difference in test scores as the non catholic schools estimate is higher. Our pvalues also show this as the pvalue of the matched t test is "larger" than the unmatched, bringing us closer to being unable to reject the null. Again, our recent comment that higher test scores are higher because of the individuals, not the school.
+
+## 2.8 Theoretical Question
+
+Why would we want to use a matching method instead of a simple regression? What advantages and disadvantages does the propensity score matching method have over regression?
+
+> In desiring to find out if schools are making an impact on test scores, we ran simple regression and matched method model. This allowed us to see that simple regression wrongly indicated the assumption that catholic schools do have an impact on test scores. When we ran the matched method model we saw that catholic schools do not have as much of an impact as the individuals themselves. Simple regression does not have the ability to capture the true impact on the treatment group, leading us to believe Catholic schools make a positive impact on test scores. Running a matched model tells us otherwise. Students individual abilities and family situations are more indicative of test scores rather than which school they attend.   
+
+> One advantages to propensity score matching is that it constructs a better control group for regression because it "matches" and standardizes what we want to predict. One disadvantage is if the sample size is small, there's a loss of data when the matching occurs as we saw in our catholic schools vs non catholic schools example. We started out with 11k data points, but only ended up matching on fewer than 1K (see matched matrix below). Fortunately, this data set is large enough to still produce meaningful results. This is not an issue for simple regression because simple regression will run all data provided, including handling of missing values.  
+
+```{r echo = FALSE}
+matched_matrix
+```
+
