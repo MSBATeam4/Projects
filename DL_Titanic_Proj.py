@@ -30,11 +30,22 @@ titanic.drop(['PassengerId', 'SibSp', 'Parch'], axis = 1, inplace = True)
  
 #Fill in missing and create indicator for Cabin variable
 titanic.isnull().sum()
-titanic.groupby(titanic['Cabin'].isnull())['Survived'].mean()
 titanic['Cabin_ind'] = np.where(titanic['Cabin'].isnull(), 0, 1)
 
+#Wealthy Variable Creation
 Fare_Avg = titanic['Fare'].mean()
+titanic['Wealthy_Pclass'] = np.where((titanic['Pclass'] == 1), 1, 0)
+titanic['Wealthy_Fare'] = np.where((titanic['Fare'] > Fare_Avg), 1, 0)
 
+titanic['Wealthy'] = np.logical_and(titanic['Wealthy_Pclass'] == 1, titanic['Wealthy_Fare'] == 1)
+titanic['Wealthy'] = np.where((titanic['Wealthy'] == False), 0, 1)
+
+titanic.drop(['Wealthy_Pclass', 'Wealthy_Fare'], axis=1, inplace = True)
+
+#Wealthy Location Variable
+
+
+#Pclass and Cabin assignment
 
 
 #Convert Sex to numeric, notice use of dictionary where in R we would use ifelse
