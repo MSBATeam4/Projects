@@ -56,6 +56,10 @@ titanic['Middle_Aged'] = np.logical_and(titanic['Age']>29, titanic['Age']<=54)
 titanic['Middle_Aged'] = np.where((titanic['Middle_Aged'] == False), 0, 1)
 titanic['Senior'] = np.where((titanic['Age']>54), 1, 0)
 
+#Cheap Cabin: Fare less than avg and cabin indicator is present
+titanic['Cheap_Cabin'] = np.logical_and(titanic['Fare'] < Fare_Avg, titanic['Cabin_ind'] == 1)
+titanic['Cheap_Cabin'] = np.where((titanic['Cheap_Cabin'] == False), 0, 1)
+
 
 #Convert Sex to numeric, notice use of dictionary where in R we would use ifelse
 gender_num = {'male': 0, 'female': 1}
