@@ -45,6 +45,8 @@ titanic.drop(['Wealthy_Pclass', 'Wealthy_Fare'], axis=1, inplace = True)
 
 
 #Pclass and Cabin assignment
+titanic['ThirdClass_Cabin'] = np.logical_and(titanic['Pclass'] == 3, titanic['Cabin_ind'] == 1)
+titanic['ThirdClass_Cabin'] = np.where((titanic['ThirdClass_Cabin'] == False), 0, 1)
 
 
 #Convert Sex to numeric, notice use of dictionary where in R we would use ifelse
