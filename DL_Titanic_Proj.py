@@ -1,6 +1,5 @@
 from asyncore import write
 from cProfile import label
-import imp
 from operator import index
 from pickle import TRUE
 from tkinter import Grid
@@ -23,7 +22,7 @@ titanic.isnull().sum()
 titanic['Age'].fillna(titanic['Age'].mean(), inplace=True)
  
 #Combine SibSp and Parch columns
-titanic['Family_total'] = titanic['SibSp'] + titanic['Parch']
+titanic['Household_total'] = titanic['SibSp'] + titanic['Parch']
  
 #Drop unnecessary vairables
 titanic.drop(['PassengerId', 'SibSp', 'Parch'], axis = 1, inplace = True)
