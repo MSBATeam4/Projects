@@ -70,6 +70,12 @@ titanic['Age_Fare_MA'] = np.where((titanic['Age_Fare_MA'] == False), 0, 1)
 titanic['Age_Fare_Senior'] = np.logical_and(titanic['Senior'] == 1, titanic['Fare'] < Fare_Avg)
 titanic['Age_Fare_Senior'] = np.where((titanic['Age_Fare_Senior'] == False), 0, 1)
 
+#Wealthy by Sex
+titanic['Wealthy_Female'] = np.logical_and(titanic['Wealthy'] == 1, titanic['Sex'] == "female")
+titanic['Wealthy_Female'] = np.where((titanic['Wealthy_Female'] == False), 0, 1)
+titanic['Wealthy_Male'] = np.logical_and(titanic['Wealthy'] == 1, titanic['Sex'] == "male")
+titanic['Wealthy_Male'] = np.where((titanic['Wealthy_Male'] == False), 0, 1)
+
 
 #Convert Sex to numeric, notice use of dictionary where in R we would use ifelse
 gender_num = {'male': 0, 'female': 1}
