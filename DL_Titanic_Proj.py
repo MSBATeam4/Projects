@@ -188,18 +188,17 @@ gb_cv.fit(X_train, y_train.values.ravel())
 print('Accuracy: {}; Best Parameter {}'.format(round(gb_cv.best_score_, 2), gb_cv.best_params_))
 
 #Neural Network Sequential()
-#Trouble shooting error incompatible with the layer: expected shape=(None, 3), found shape=(None, 22)
-from keras.layers import Flatten
 NNet1 = Sequential()
-number_inputs = 3
+number_inputs = 22
 number_hidden_nodes = 4
 NNet1.add(Dense(units=number_hidden_nodes,activation='relu', input_dim=number_inputs))
 NNet1.add(Dense(units=3, activation = 'relu'))
-NNet1.add(Dense(units=2, activation='softmax'))
+NNet1.add(Dense(units=2, activation='sigmoid'))
+NNet1.add(Dense(units = 1, activation='sigmoid'))
 NNet1.summary()
 
 NNet1.compile(optimizer='adam',
-              loss='categorical_crossentropy',
+              loss='binary_crossentropy',
               metrics=['accuracy'])
 
 NNet1.fit(X_train, y_train, epochs=1000, shuffle=True, verbose=2)
@@ -207,6 +206,7 @@ NNet1.fit(X_train, y_train, epochs=1000, shuffle=True, verbose=2)
 NNet1_loss, NNet1_accuracy = NNet1.evaluate(
     X_val, y_val, verbose=2)
 print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}")
+  
   
 #Evaluate Models
 #use on validation set, then pick best performer to .evaluate on test set
@@ -233,3 +233,7 @@ gb_pred_test = gb_cv.predict(X_test)
 print('Gradient Boosting Accuracy: {}'.format(round(accuracy_score(y_test, gb_pred_test), 3)))                                                                        
 mlp_pred_test = mlp_cv.predict(X_test)
 print('MLP Accuracy: {}'.format(round(accuracy_score(y_test, mlp_pred_test), 3)))
+
+NNet1_test_loss, NNet1_test_accuracy = NNet1.evaluate(
+    X_test, y_test, verbose=2)
+print('Accuracy: {}, Loss {}'.format(round(NNet1_test_accuracy, 3), round(NNet1_test_loss, 3)))
