@@ -1,15 +1,20 @@
 from asyncore import write
 from cProfile import label
+import imp
 from operator import index
-from pickle import TRUE
 from tkinter import Grid
 from unittest import result
+from keras.backend import flatten
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.lib import utils
 import pandas as pd
 import seaborn as sns
 from skimpy import skim
+from keras.models import Sequential
+from keras.layers import Dense
+
 
 file = 'titanic.csv'
 titanic = pd.read_csv(file)
@@ -22,7 +27,7 @@ titanic.isnull().sum()
 titanic['Age'].fillna(titanic['Age'].mean(), inplace=True)
  
 #Combine SibSp and Parch columns
-titanic['Household_total'] = titanic['SibSp'] + titanic['Parch']
+titanic['Household_Total'] = titanic['SibSp'] + titanic['Parch']
  
 #Drop unnecessary vairables
 titanic.drop(['PassengerId', 'SibSp', 'Parch'], axis = 1, inplace = True)
@@ -42,7 +47,13 @@ titanic['Wealthy'] = np.where((titanic['Wealthy'] == False), 0, 1)
 titanic.drop(['Wealthy_Pclass', 'Wealthy_Fare'], axis=1, inplace = True)
 
 #Wealthy Location Variable
+titanic['Wealthy_Loc_C'] = np.logical_and(titanic['Wealthy'] == 1, titanic['Embarked'] == 'C')
+titanic['Wealthy_Loc_S'] = np.logical_and(titanic['Wealthy'] == 1, titanic['Embarked'] == 'S')
+titanic['Wealthy_Loc_Q'] = np.logical_and(titanic['Wealthy'] == 1, titanic['Embarked'] == 'Q')
 
+titanic['Wealthy_Loc_C'] = np.where((titanic['Wealthy_Loc_C'] == False), 0 , 1)
+titanic['Wealthy_Loc_S'] = np.where((titanic['Wealthy_Loc_S'] == False), 0, 1)
+titanic['Wealthy_Loc_Q'] = np.where((titanic['Wealthy_Loc_Q'] == False), 0, 1)
 
 #Pclass and Cabin assignment
 titanic['ThirdClass_Cabin'] = np.logical_and(titanic['Pclass'] == 3, titanic['Cabin_ind'] == 1)
@@ -77,12 +88,148 @@ titanic['Wealthy_Male'] = np.logical_and(titanic['Wealthy'] == 1, titanic['Sex']
 titanic['Wealthy_Male'] = np.where((titanic['Wealthy_Male'] == False), 0, 1)
 
 
-#Convert Sex to numeric, notice use of dictionary where in R we would use ifelse
+#Convert Sex to numeric
 gender_num = {'male': 0, 'female': 1}
 titanic['Sex'] = titanic['Sex'].map(gender_num)
- 
+
 #Drop unnecessary variables
 titanic.drop(['Cabin', 'Embarked', 'Name', 'Ticket'], axis=1, inplace=True)
  
 #Write cleaned data to csv
-titanic.to_csv('titanic_cleaned_vscode.csv', index=False)
+titanic.to_csv('titanic_clean.csv', index=False)
+
+ 
+#Library to Split into train, validation, and test sets
+from sklearn.model_selection import train_test_split
+
+ 
+titanic = pd.read_csv('titanic_clean.csv')
+features = titanic.drop('Survived', axis=1)
+labels = titanic['Survived']
+ 
+#80% Training/10%Validation/10% Testing
+X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=.2, random_state=99)
+X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=.5, random_state=99)
+ 
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+#Grid Seach assist in hyperparameter tuning
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+ 
+ 
+
+#Logistic Regression
+lr = LogisticRegression()
+parameters = {
+    'C': [.001, .01, .1, 1, 10, 100, 1000]
+}
+ 
+lr_cv = GridSearchCV(lr, parameters,  cv=5)
+lr_cv.fit(X_train, y_train.values.ravel())
+print('Accuracy: {}; Best Parameter {}'.format(round(lr_cv.best_score_, 2), lr_cv.best_params_))
+ 
+ 
+#Support Vector Machine (SVC)
+from sklearn.svm import SVC
+svc = SVC()
+parameters = {
+    'kernel': ['linear', 'rbf'],
+    'C': [.1, 1, 10]
+}
+ 
+svc_cv = GridSearchCV(svc, parameters, cv=5)
+svc_cv.fit(X_train, y_train.values.ravel())
+print('Accuracy: {}; Best Parameter {}'.format(round(svc_cv.best_score_, 2), svc_cv.best_params_))
+
+  
+#Multilayer Perceptron (MLP)
+from sklearn.neural_network import MLPClassifier
+mlp = MLPClassifier()
+parameters = {
+    'hidden_layer_sizes': [(10,), (50,), (100,)],
+    'activation': ['relu', 'tanh', 'logistic'],
+    'learning_rate': ['constant', 'invscaling', 'adaptive']
+}
+ 
+mlp_cv = GridSearchCV(mlp, parameters, cv=5)
+mlp_cv.fit(X_train, y_train.values.ravel())
+print('Accuracy: {}; Best Parameter {}'.format(round(mlp_cv.best_score_, 2), mlp_cv.best_params_)) 
+
+ 
+#Random Forest
+from sklearn.ensemble import RandomForestClassifier
+ 
+rf = RandomForestClassifier()
+parameters = {
+    'n_estimators': [5, 50, 250],
+    'max_depth': [2, 4, 8, 16, 32, None]
+}
+ 
+rf_cv = GridSearchCV(rf, parameters, cv=5)
+rf_cv.fit(X_train, y_train.values.ravel())
+print('Accuracy: {}; Best Parameter {}'.format(round(rf_cv.best_score_, 2), rf_cv.best_params_)) 
+
+  
+#Gradient Boosting
+from sklearn.ensemble import GradientBoostingClassifier
+gb = GradientBoostingClassifier()
+parameters = {
+    'n_estimators': [5, 50, 250, 500],
+    'max_depth': [1, 3, 5, 7, 9],
+    'learning_rate': [0.01, 0.1, 1, 10, 100]
+}
+ 
+gb_cv = GridSearchCV(gb, parameters, cv=5)
+ 
+gb_cv.fit(X_train, y_train.values.ravel())
+ 
+print('Accuracy: {}; Best Parameter {}'.format(round(gb_cv.best_score_, 2), gb_cv.best_params_))
+
+#Neural Network Sequential()
+#Trouble shooting error incompatible with the layer: expected shape=(None, 3), found shape=(None, 22)
+from keras.layers import Flatten
+NNet1 = Sequential()
+number_inputs = 3
+number_hidden_nodes = 4
+NNet1.add(Dense(units=number_hidden_nodes,activation='relu', input_dim=number_inputs))
+NNet1.add(Dense(units=3, activation = 'relu'))
+NNet1.add(Dense(units=2, activation='softmax'))
+NNet1.summary()
+
+NNet1.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+NNet1.fit(X_train, y_train, epochs=1000, shuffle=True, verbose=2)
+
+NNet1_loss, NNet1_accuracy = NNet1.evaluate(
+    X_val, y_val, verbose=2)
+print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}")
+  
+#Evaluate Models
+#use on validation set, then pick best performer to .evaluate on test set
+#Validation
+#lr_cv.fit(X_val, y_val.values.ravel())
+from sklearn.metrics import accuracy_score, precision_score, recall_score 
+lr_pred = lr_cv.predict(X_val)
+svc_pred = svc_cv.predict(X_val)
+mlp_pred = mlp_cv.predict(X_val)
+rf_pred = rf_cv.predict(X_val)
+gb_pred = gb_cv.predict(X_val)
+
+
+print('Logistic Accuracy: {}'.format(accuracy_score(y_val, lr_pred)))
+print('SVM Accuracy: {}'.format(accuracy_score(y_val, svc_pred)))
+print('MLP Accuracy: {}'.format(accuracy_score(y_val, mlp_pred)))
+print('Random Forest Accuracy: {}'.format(accuracy_score(y_val, rf_pred)))
+print('Gradient Boosting Accuracy: {}'.format(accuracy_score(y_val, gb_pred)))
+
+#Testing
+rf_pred_test = rf_cv.predict(X_test)
+print('Random Forest Accuracy: {}'.format(round(accuracy_score(y_test, rf_pred_test), 3)))
+gb_pred_test = gb_cv.predict(X_test)
+print('Gradient Boosting Accuracy: {}'.format(round(accuracy_score(y_test, gb_pred_test), 3)))                                                                        
+mlp_pred_test = mlp_cv.predict(X_test)
+print('MLP Accuracy: {}'.format(round(accuracy_score(y_test, mlp_pred_test), 3)))
