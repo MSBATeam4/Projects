@@ -1,6 +1,5 @@
 from asyncore import write
 from cProfile import label
-import imp
 from operator import index
 from tkinter import Grid
 from unittest import result
@@ -191,9 +190,9 @@ print('Accuracy: {}; Best Parameter {}'.format(round(gb_cv.best_score_, 2), gb_c
 NNet1 = Sequential()
 number_inputs = 22
 number_hidden_nodes = 7
-NNet1.add(Dense(units=number_hidden_nodes,activation='relu', input_dim=number_inputs))
+NNet1.add(Dense(units=number_hidden_nodes,activation='sigmoid', input_dim=number_inputs))
 NNet1.add(Dense(units=3, activation = 'relu'))
-NNet1.add(Dense(units=2, activation='sigmoid'))
+NNet1.add(Dense(units=2, activation='tanh'))
 NNet1.add(Dense(units = 1, activation='sigmoid'))
 NNet1.summary()
 
@@ -201,7 +200,7 @@ NNet1.compile(optimizer='adam',
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
-NNet1.fit(X_train, y_train, epochs=1000, shuffle=True, verbose=2)
+NNet1.fit(X_train, y_train, epochs=1500, verbose=2)
 
 """ NNet1_loss, NNet1_accuracy = NNet1.evaluate(X_val, y_val, verbose=2)
 print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}") """
