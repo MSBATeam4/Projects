@@ -190,7 +190,7 @@ print('Accuracy: {}; Best Parameter {}'.format(round(gb_cv.best_score_, 2), gb_c
 #Neural Network Sequential()
 NNet1 = Sequential()
 number_inputs = 22
-number_hidden_nodes = 4
+number_hidden_nodes = 7
 NNet1.add(Dense(units=number_hidden_nodes,activation='relu', input_dim=number_inputs))
 NNet1.add(Dense(units=3, activation = 'relu'))
 NNet1.add(Dense(units=2, activation='sigmoid'))
@@ -203,28 +203,24 @@ NNet1.compile(optimizer='adam',
 
 NNet1.fit(X_train, y_train, epochs=1000, shuffle=True, verbose=2)
 
-NNet1_loss, NNet1_accuracy = NNet1.evaluate(
-    X_val, y_val, verbose=2)
-print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}")
-  
+""" NNet1_loss, NNet1_accuracy = NNet1.evaluate(X_val, y_val, verbose=2)
+print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}") """
   
 #Evaluate Models
-#use on validation set, then pick best performer to .evaluate on test set
-#Validation
-#lr_cv.fit(X_val, y_val.values.ravel())
+
 from sklearn.metrics import accuracy_score, precision_score, recall_score 
-lr_pred = lr_cv.predict(X_val)
+#Excluding Validation Set, not interested in measuring model parameteres within same model type. 
+""" lr_pred = lr_cv.predict(X_val)
 svc_pred = svc_cv.predict(X_val)
 mlp_pred = mlp_cv.predict(X_val)
 rf_pred = rf_cv.predict(X_val)
 gb_pred = gb_cv.predict(X_val)
 
-
 print('Logistic Accuracy: {}'.format(accuracy_score(y_val, lr_pred)))
 print('SVM Accuracy: {}'.format(accuracy_score(y_val, svc_pred)))
 print('MLP Accuracy: {}'.format(accuracy_score(y_val, mlp_pred)))
 print('Random Forest Accuracy: {}'.format(accuracy_score(y_val, rf_pred)))
-print('Gradient Boosting Accuracy: {}'.format(accuracy_score(y_val, gb_pred)))
+print('Gradient Boosting Accuracy: {}'.format(accuracy_score(y_val, gb_pred))) """
 
 #Testing
 rf_pred_test = rf_cv.predict(X_test)
@@ -233,7 +229,9 @@ gb_pred_test = gb_cv.predict(X_test)
 print('Gradient Boosting Accuracy: {}'.format(round(accuracy_score(y_test, gb_pred_test), 3)))                                                                        
 mlp_pred_test = mlp_cv.predict(X_test)
 print('MLP Accuracy: {}'.format(round(accuracy_score(y_test, mlp_pred_test), 3)))
-
-NNet1_test_loss, NNet1_test_accuracy = NNet1.evaluate(
-    X_test, y_test, verbose=2)
-print('Accuracy: {}, Loss {}'.format(round(NNet1_test_accuracy, 3), round(NNet1_test_loss, 3)))
+svc_pred_test = svc_cv.predict(X_test)
+print('SVM Accuracy: {}'.format(round(accuracy_score(y_test, svc_pred_test), 3)))
+lr_pred_test = lr_cv.predict(X_test)
+print('Logistic Accuracy: {}'.format(round(accuracy_score(y_test, lr_pred_test), 3)))
+NNet1_test_loss, NNet1_test_accuracy = NNet1.evaluate(X_test, y_test, verbose=2)
+print('Accuracy: {}'.format(round(NNet1_test_accuracy, 3), round(NNet1_test_loss, 3)))
