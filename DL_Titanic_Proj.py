@@ -187,6 +187,10 @@ gb_cv.fit(X_train, y_train.values.ravel())
 print('Accuracy: {}; Best Parameter {}'.format(round(gb_cv.best_score_, 2), gb_cv.best_params_))
 
 #Neural Network Sequential()
+from numpy.random import seed
+seed(99)
+import tensorflow
+tensorflow.random.set_seed(99)
 NNet1 = Sequential()
 number_inputs = 22
 number_hidden_nodes = 7
@@ -200,14 +204,13 @@ NNet1.compile(optimizer='adam',
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
-NNet1.fit(X_train, y_train, epochs=1500, verbose=2)
+NNet1.fit(X_train, y_train, epochs=2000, verbose=2)
 
 """ NNet1_loss, NNet1_accuracy = NNet1.evaluate(X_val, y_val, verbose=2)
 print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}") """
   
 #Evaluate Models
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score 
 #Excluding Validation Set, not interested in measuring model parameteres within same model type. 
 """ lr_pred = lr_cv.predict(X_val)
 svc_pred = svc_cv.predict(X_val)
@@ -222,6 +225,7 @@ print('Random Forest Accuracy: {}'.format(accuracy_score(y_val, rf_pred)))
 print('Gradient Boosting Accuracy: {}'.format(accuracy_score(y_val, gb_pred))) """
 
 #Testing
+from sklearn.metrics import accuracy_score, precision_score, recall_score 
 rf_pred_test = rf_cv.predict(X_test)
 print('Random Forest Accuracy: {}'.format(round(accuracy_score(y_test, rf_pred_test), 3)))
 gb_pred_test = gb_cv.predict(X_test)
