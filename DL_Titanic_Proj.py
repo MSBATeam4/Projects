@@ -108,7 +108,7 @@ labels = titanic['Survived']
  
 #80% Training/10%Validation/10% Testing
 X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=.2, random_state=99)
-X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=.5, random_state=99)
+#X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=.5, random_state=99)
  
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
@@ -238,3 +238,14 @@ lr_pred_test = lr_cv.predict(X_test)
 print('Logistic Accuracy: {}'.format(round(accuracy_score(y_test, lr_pred_test), 3)))
 NNet1_test_loss, NNet1_test_accuracy = NNet1.evaluate(X_test, y_test, verbose=2)
 print('Accuracy: {}'.format(round(NNet1_test_accuracy, 3), round(NNet1_test_loss, 3)))
+
+RF_Acc = round(accuracy_score(y_test, rf_pred_test), 3)
+GB_Acc = round(accuracy_score(y_test, gb_pred_test), 3)
+MLP_Acc = round(accuracy_score(y_test, mlp_pred_test), 3)
+SVM_Acc = round(accuracy_score(y_test, svc_pred_test), 3)
+LR_Acc = round(accuracy_score(y_test, lr_pred_test), 3)
+NNet_Acc = round(NNet1_test_accuracy, 3)
+ 
+df = pd.DataFrame([RF_Acc, GB_Acc, MLP_Acc, SVM_Acc, LR_Acc, NNet_Acc], ['RandomForest', 'Gradient Boosting', 'Multilayer Perceptron', 'Support Vector Machine', 'Logistic Regression', 'Neural Network'])
+Accuracy_Table = df.rename(columns={0: 'Test Accuracy'})
+Accuracy_Table
