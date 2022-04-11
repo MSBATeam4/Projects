@@ -204,7 +204,7 @@ NNet1.compile(optimizer='adam',
               loss='binary_crossentropy',
               metrics=['accuracy'])
 
-NNet1.fit(X_train, y_train, epochs=2000, verbose=2)
+NNet1.fit(X_train, y_train, epochs=1800, verbose=2)
 
 """ NNet1_loss, NNet1_accuracy = NNet1.evaluate(X_val, y_val, verbose=2)
 print(f"Loss: {NNet1_loss}, Accuracy: {NNet1_accuracy}") """
