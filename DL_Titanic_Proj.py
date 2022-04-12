@@ -247,5 +247,6 @@ LR_Acc = round(accuracy_score(y_test, lr_pred_test), 3)
 NNet_Acc = round(NNet1_test_accuracy, 3)
  
 df = pd.DataFrame([RF_Acc, GB_Acc, MLP_Acc, SVM_Acc, LR_Acc, NNet_Acc], ['RandomForest', 'Gradient Boosting', 'Multilayer Perceptron', 'Support Vector Machine', 'Logistic Regression', 'Neural Network'])
-Accuracy_Table = df.rename(columns={0: 'Test Accuracy'})
+Accuracy_Table_df = df.rename(columns={0: 'Test Accuracy'})
+Accuracy_Table = Accuracy_Table_df.sort_values(by=['Test Accuracy'], ascending=False)
 Accuracy_Table
